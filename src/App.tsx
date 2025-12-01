@@ -1,16 +1,14 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
-import BTCPlayground from './pages/chains/BTCPlayground'
-import CosmosPlayground from './pages/chains/CosmosPlayground'
+import ProviderPlayground from './pages/chains/ProviderPlayground'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
-        <Route path="btc" element={<BTCPlayground />} />
-        <Route path="cosmos" element={<CosmosPlayground />} />
+        <Route path=":chain/:provider" element={<ProviderPlayground />} />
       </Route>
     </Routes>
   )

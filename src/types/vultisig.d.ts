@@ -12,6 +12,20 @@ export interface VultisigVault {
 interface VultisigWindow {
   vultisig?: {
     bitcoin?: VultisigProvider
+    cosmos?: VultisigProvider
+    keplr?: VultisigProvider
+    ethereum?: VultisigProvider
+    tron?: VultisigProvider
+    zcash?: VultisigProvider
+    dogecoin?: VultisigProvider
+    bch?: VultisigProvider
+    litecoin?: VultisigProvider
+    thorchain?: VultisigProvider
+    mayachain?: VultisigProvider
+    ripple?: VultisigProvider
+    solana?: VultisigProvider
+    polkadot?: VultisigProvider
+    dash?: VultisigProvider
     getVault(): Promise<VultisigVault>
     [key: string]: unknown
   }
