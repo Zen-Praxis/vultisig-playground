@@ -1,6 +1,13 @@
 import { NavLink } from 'react-router-dom'
 
-const chains = [
+interface Chain {
+  id: string
+  name: string
+  icon: string
+  path: string
+}
+
+const chains: Chain[] = [
   { id: 'BTC', name: 'Bitcoin', icon: '/chains/btc.svg', path: '/btc' },
   { id: 'COSMOS', name: 'Cosmos', icon: '/chains/atom.svg', path: '/cosmos' },
 ]
@@ -33,3 +40,4 @@ function ChainMenu() {
 }
 
 export default ChainMenu
+
