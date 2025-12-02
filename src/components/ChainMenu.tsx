@@ -7,31 +7,31 @@ interface Chain {
   name: string
   icon: string
   path: string
+  key: string
 }
 
 const chains: Chain[] = [
-  { id: 'BTC', name: 'Bitcoin', icon: '/chains/btc.svg', path: '/btc' },
-  { id: 'COSMOS', name: 'Cosmos', icon: '/chains/atom.svg', path: '/cosmos' },
-  { id: 'ETH', name: 'Ethereum', icon: '/chains/eth.svg', path: '/eth' },
-  { id: 'TRON', name: 'Tron', icon: '/chains/tron.svg', path: '/tron' },
-  { id: 'ZEC', name: 'Zcash', icon: '/chains/zec.svg', path: '/zcash' },
-  { id: 'DOGE', name: 'Dogecoin', icon: '/chains/doge.svg', path: '/doge' },
-  { id: 'BCH', name: 'Bitcoin Cash', icon: '/chains/bch.svg', path: '/bch' },
-  { id: 'LTC', name: 'Litecoin', icon: '/chains/ltc.svg', path: '/ltc' },
-  { id: 'RUNE', name: 'Thorchain', icon: '/chains/rune.svg', path: '/rune' },
-  { id: 'MAYA', name: 'Mayachain', icon: '/chains/maya.svg', path: '/maya' },
-  { id: 'XRP', name: 'Ripple', icon: '/chains/xrp.svg', path: '/xrp' },
-  { id: 'SOL', name: 'Solana', icon: '/chains/solana.svg', path: '/sol' },
-  { id: 'DOT', name: 'Polkadot', icon: '/chains/dot.svg', path: '/dot' },
-  { id: 'DASH', name: 'Dash', icon: '/chains/dash.svg', path: '/dash' },
+  { id: 'BTC', name: 'Bitcoin', icon: '/chains/btc.svg', path: '/btc', key: 'btc' },
+  { id: 'COSMOS', name: 'Cosmos', icon: '/chains/atom.svg', path: '/cosmos', key: 'cosmos' },
+  { id: 'ETH', name: 'Ethereum', icon: '/chains/eth.svg', path: '/eth', key: 'eth' },
+  { id: 'TRON', name: 'Tron', icon: '/chains/tron.svg', path: '/tron', key: 'tron' },
+  { id: 'ZEC', name: 'Zcash', icon: '/chains/zec.svg', path: '/zcash', key: 'zcash' },
+  { id: 'DOGE', name: 'Dogecoin', icon: '/chains/doge.svg', path: '/doge', key: 'doge' },
+  { id: 'BCH', name: 'Bitcoin Cash', icon: '/chains/bch.svg', path: '/bch', key: 'bch' },
+  { id: 'LTC', name: 'Litecoin', icon: '/chains/ltc.svg', path: '/ltc', key: 'ltc' },
+  { id: 'RUNE', name: 'Thorchain', icon: '/chains/rune.svg', path: '/rune', key: 'rune' },
+  { id: 'MAYA', name: 'Mayachain', icon: '/chains/maya.svg', path: '/maya', key: 'maya' },
+  { id: 'XRP', name: 'Ripple', icon: '/chains/xrp.svg', path: '/xrp', key: 'xrp' },
+  { id: 'SOL', name: 'Solana', icon: '/chains/solana.svg', path: '/sol', key: 'sol' },
+  { id: 'DOT', name: 'Polkadot', icon: '/chains/dot.svg', path: '/dot', key: 'dot' },
+  { id: 'DASH', name: 'Dash', icon: '/chains/dash.svg', path: '/dash', key: 'dash' },
 ]
 
 function ChainMenu() {
   return (
     <div className="flex flex-col gap-2">
       {chains.map((chain) => {
-        const chainKey = chain.path.replace('/', '')
-        const providers = getChainProviders(chainKey)
+        const providers = getChainProviders(chain.key)
 
         return (
           <div key={chain.id} className="flex flex-col gap-1">
