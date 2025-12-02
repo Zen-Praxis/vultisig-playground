@@ -68,7 +68,7 @@ export class UtxoContext {
     const endpoints = [
       { url: `${UtxoContext.BASE_ENDPOINTS[0]}/v1/fees/recommended`, getFee: (data: { fastestFee: number }) => BigInt(data.fastestFee) },
       { url: `${UtxoContext.BASE_ENDPOINTS[1]}/fee-estimates`, getFee: (data: Record<string, number>) => {
-        const target = '6' // 6 blocks target
+        const target = '6'
         const fee = data[target]
         if (!fee) {
           const values = Object.values(data).filter((v): v is number => typeof v === 'number')
@@ -89,7 +89,7 @@ export class UtxoContext {
 
     const successful = responses.find((r) => r.status === 'fulfilled')
     if (!successful || successful.status !== 'fulfilled') {
-      return BigInt(10) // Default fallback
+      return BigInt(10)
     }
 
     return successful.value

@@ -34,7 +34,9 @@ function ProviderPlayground() {
     } else {
       setError('Vultisig extension not detected. Please install the extension.')
     }
-  }, [provider])
+    setMethodResults({})
+    setSelectedMethod('')
+  }, [chain, provider])
 
   useEffect(() => {
     if (providerMethods.length > 0 && !selectedMethod) {
