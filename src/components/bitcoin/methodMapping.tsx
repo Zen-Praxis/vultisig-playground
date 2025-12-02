@@ -1,5 +1,6 @@
 import { RequestMethod } from './RequestMethod'
 import { RequestAccountsMethod } from './RequestAccountsMethod'
+import { SignPsbtMethod } from './SignPsbtMethod'
 import type { ReactElement } from 'react'
 
 interface MethodComponentProps {
@@ -14,6 +15,7 @@ type MethodComponent = (props: MethodComponentProps) => ReactElement
 export const bitcoinMethodMapping: Record<string, MethodComponent> = {
   request: RequestMethod,
   requestAccounts: RequestAccountsMethod,
+  signPSBT: SignPsbtMethod,
 }
 
 export function getMethodComponent(methodName: string): MethodComponent | null {

@@ -29,6 +29,15 @@ interface VultisigWindow {
     getVault(): Promise<VultisigVault>
     [key: string]: unknown
   }
+  phantom?: {
+    bitcoin?: VultisigProvider & {
+      signPSBT?: (
+        psbt: Buffer,
+        options: { inputsToSign: Array<{ address: string; signingIndexes: number[]; sigHash: number }> },
+        finalize: boolean
+      ) => Promise<Buffer>
+    }
+  }
 }
 
 declare global {
