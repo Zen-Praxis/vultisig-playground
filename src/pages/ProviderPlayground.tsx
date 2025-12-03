@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { HiRefresh } from 'react-icons/hi'
 import { useParams } from 'react-router-dom'
-import { useProviderMethods } from '../../hooks/useProviderMethods'
-import { getMethodComponent } from '../../components/methodMapping'
-import { getProviderDisplayName } from '../../config/providerNames'
+import { useProviderMethods } from '../hooks/useProviderMethods'
+import { getMethodComponent } from '../components/methodMapping'
+import { getProviderDisplayName } from '../config/providerNames'
 
 interface MethodResult {
   [methodName: string]: {

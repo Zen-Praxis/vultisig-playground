@@ -50,7 +50,7 @@ export function SignPsbtTab({
           </div>
           <button
             onClick={onSignPsbtWithPhantom}
-            disabled={loadingPhantom || broadcasting || !psbt.trim() || !window.phantom?.bitcoin}
+            disabled={loadingPhantom || broadcasting || !psbt.trim() || !(window as unknown as { phantom?: { bitcoin?: unknown } }).phantom?.bitcoin}
             className="w-full px-3 py-2 text-xs bg-purple-50 border border-purple-200 text-purple-700 rounded hover:bg-purple-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed transition-colors"
             title="Sign and Broadcast with Phantom (for comparison)"
           >

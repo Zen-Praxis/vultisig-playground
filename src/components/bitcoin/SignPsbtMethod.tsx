@@ -5,6 +5,7 @@ import { UtxoContext, Utxo } from '../../lib/tx/btc/UtxoContext'
 import { PsbtBuilder } from '../../lib/tx/btc/psbtBuilder'
 import { GeneratePsbtTab } from './signPsbtMethod/GeneratePsbtTab'
 import { SignPsbtTab } from './signPsbtMethod/SignPsbtTab'
+import { useWalletConnection } from '../../hooks/useWalletConnection'
 
 interface SignPsbtMethodProps {
   provider: unknown
@@ -31,28 +32,14 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   const [utxos, setUtxos] = useState<Utxo[]>([])
   const [selectedUtxos, setSelectedUtxos] = useState<Set<string>>(new Set())
   const [loadingUtxos, setLoadingUtxos] = useState<boolean>(false)
+  
+  const { connectedAddress, ensureConnection } = useWalletConnection('bitcoin')
 
   useEffect(() => {
-    const fetchConnectedAddress = async (): Promise<void> => {
-      if (!window.vultisig?.bitcoin) return
-
-      try {
-        const providerObj = window.vultisig.bitcoin as unknown as Record<string, unknown>
-        if (providerObj.request) {
-          const accounts = await (providerObj.request as (params: { method: string }) => Promise<string[]>)({
-            method: 'get_accounts'
-          })
-          if (accounts && accounts.length > 0) {
-            setFromAddress(accounts[0])
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch connected address', err)
-      }
+    if (connectedAddress) {
+      setFromAddress(connectedAddress)
     }
-
-    fetchConnectedAddress()
-  }, [])
+  }, [connectedAddress])
 
   useEffect(() => {
     // Limpiar estados relacionados con resultados y errores al cambiar de tab
@@ -163,12 +150,23 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   }
 
   const handleSignPsbt = async (providerName: 'vultisig' | 'phantom'): Promise<void> => {
-    const provider = providerName === 'vultisig' ? window.vultisig?.bitcoin : window.phantom?.bitcoin
+    const provider = providerName === 'vultisig' 
+      ? window.vultisig?.bitcoin 
+      : (window as unknown as { phantom?: { bitcoin?: unknown } }).phantom?.bitcoin
     const providerDisplayName = providerName === 'vultisig' ? 'Vultisig' : 'Phantom'
     
     if (!provider) {
       onError(providerName === 'vultisig' ? 'Provider not available' : 'Phantom extension not detected')
       return
+    }
+
+    if (providerName === 'vultisig') {
+      // Asegurar conexión antes de firmar
+      const connected = await ensureConnection()
+      if (!connected) {
+        onError('Vultisig wallet not connected. Please connect your wallet to continue.')
+        return
+      }
     }
 
     if (!psbt.trim()) {

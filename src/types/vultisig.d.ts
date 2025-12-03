@@ -4,6 +4,14 @@ export interface VultisigProvider {
   removeListener(event: string, handler: (data?: unknown) => void): void
 }
 
+export interface VultisigBitcoinProvider extends VultisigProvider {
+  signPSBT?: (
+    psbt: Buffer | Uint8Array,
+    options: { inputsToSign: Array<{ address: string; signingIndexes: number[]; sigHash: number }> },
+    finalize?: boolean
+  ) => Promise<Buffer>
+}
+
 export interface VultisigVault {
   name?: string
   [key: string]: unknown
@@ -11,7 +19,7 @@ export interface VultisigVault {
 
 interface VultisigWindow {
   vultisig?: {
-    bitcoin?: VultisigProvider
+    bitcoin?: VultisigBitcoinProvider
     cosmos?: VultisigProvider
     keplr?: VultisigProvider
     ethereum?: VultisigProvider
@@ -26,17 +34,7 @@ interface VultisigWindow {
     solana?: VultisigProvider
     polkadot?: VultisigProvider
     dash?: VultisigProvider
-    getVault(): Promise<VultisigVault>
     [key: string]: unknown
-  }
-  phantom?: {
-    bitcoin?: VultisigProvider & {
-      signPSBT?: (
-        psbt: Buffer,
-        options: { inputsToSign: Array<{ address: string; signingIndexes: number[]; sigHash: number }> },
-        finalize: boolean
-      ) => Promise<Buffer>
-    }
   }
 }
 
