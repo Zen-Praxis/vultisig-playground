@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Buffer } from 'buffer'
-import * as bitcoin from '@shapeshiftoss/bitcoinjs-lib'
-import { UtxoContext, Utxo } from '../../lib/tx/btc/UtxoContext'
-import { PsbtBuilder } from '../../lib/tx/btc/psbtBuilder'
+import * as core from '@shapeshiftoss/bitcoinjs-lib'
+import { UtxoQueryClient, Utxo } from '../../lib/tx/btc/UtxoQueryClient'
+import { BchPsbtBuilder } from '../../lib/tx/bch/psbtBuilder'
 import { GeneratePsbtTab } from './signPsbtMethod/GeneratePsbtTab'
 import { SignPsbtTab } from './signPsbtMethod/SignPsbtTab'
 import { useWalletConnection } from '../../hooks/useWalletConnection'
@@ -14,26 +14,25 @@ interface SignPsbtMethodProps {
   onAccountUpdate?: (accounts: string[]) => void
 }
 
-export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
+export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodProps) {
   const [mode, setMode] = useState<'generate' | 'sign'>('generate')
   const [psbt, setPsbt] = useState<string>('')
-  const [psbtInstance, setPsbtInstance] = useState<bitcoin.Psbt | null>(null)
+  const [psbtInstance, setPsbtInstance] = useState<core.Psbt | null>(null)
   const [selectedUtxosForPsbt, setSelectedUtxosForPsbt] = useState<Utxo[]>([])
   const [loading, setLoading] = useState<boolean>(false)
-  const [loadingPhantom, setLoadingPhantom] = useState<boolean>(false)
-  const [broadcasting, setBroadcasting] = useState<boolean>(false)
-  const [txid, setTxid] = useState<string>('')
 
-  const [fromAddress, setFromAddress] = useState<string>('bc1qf6sqcalymxg79z76sm2700m0c0f4fazlw7j0xp')
-  const [toAddress, setToAddress] = useState<string>('bc1qf6sqcalymxg79z76sm2700m0c0f4fazlw7j0xp')
+  const [fromAddress, setFromAddress] = useState<string>('qqgfs38865u3dvvx9a6vw8ssdpmly3hhc59cjurfrp')
+  const [toAddress, setToAddress] = useState<string>('qqgfs38865u3dvvx9a6vw8ssdpmly3hhc59cjurfrp')
   const [amount, setAmount] = useState<string>('')
   const [opReturnData, setOpReturnData] = useState<string>('')
   
-  const [utxos, setUtxos] = useState<Utxo[]>([])
+  const [utxos, setUtxos] = useState<Array<Utxo & { hex: string }>>([])
   const [selectedUtxos, setSelectedUtxos] = useState<Set<string>>(new Set())
   const [loadingUtxos, setLoadingUtxos] = useState<boolean>(false)
   
-  const { connectedAddress, ensureConnection } = useWalletConnection('bitcoin')
+  const { connectedAddress, ensureConnection } = useWalletConnection('bitcoincash')
+
+  console.log('provider', provider)
 
   useEffect(() => {
     if (connectedAddress) {
@@ -42,11 +41,9 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   }, [connectedAddress])
 
   useEffect(() => {
-    setTxid('')
-    setBroadcasting(false)
     setLoading(false)
-    setLoadingPhantom(false)
     onResult(undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
   useEffect(() => {
@@ -62,9 +59,10 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
 
     setLoadingUtxos(true)
     try {
-      const utxoContext = new UtxoContext(fromAddress)
-      const fetchedUtxos = await utxoContext.fetchUtxos()
-      setUtxos(fetchedUtxos)
+      const utxoClient = new UtxoQueryClient('BCH', fromAddress)
+      const fetchedUtxos = await utxoClient.fetch()
+      const utxosWithHex = fetchedUtxos.filter((u): u is Utxo & { hex: string } => !!u.hex)
+      setUtxos(utxosWithHex)
       setSelectedUtxos(new Set())
     } catch (err) {
       onError((err as Error).message || 'Failed to fetch UTXOs')
@@ -102,9 +100,9 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
 
     setLoading(true)
     try {
-      const builder = new PsbtBuilder()
+      const builder = new BchPsbtBuilder()
       
-      let utxosToUse: Utxo[]
+      let utxosToUse: Array<Utxo & { hex: string }>
       if (selectedUtxos.size > 0) {
         utxosToUse = utxos.filter((utxo) => selectedUtxos.has(`${utxo.hash}:${utxo.index}`))
       } else {
@@ -116,12 +114,12 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
         return
       }
 
-      let feeRateBigInt: bigint
-      if (feeRate.trim()) {
-        feeRateBigInt = BigInt(feeRate)
-      } else {
-        feeRateBigInt = await UtxoContext.fetchRecommendedFeeRate()
+      if (!feeRate.trim()) {
+        onError('Fee rate is required for BCH')
+        return
       }
+      
+      const feeRateBigInt = BigInt(feeRate)
       
       const { psbt: psbtObj, selectedUtxos: utxosForPsbt } = await builder.buildPsbtFromUtxos(
         utxosToUse,
@@ -145,23 +143,16 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
     }
   }
 
-  const handleSignPsbt = async (providerName: 'vultisig' | 'phantom'): Promise<void> => {
-    const provider = providerName === 'vultisig' 
-      ? window.vultisig?.bitcoin 
-      : (window as unknown as { phantom?: { bitcoin?: unknown } }).phantom?.bitcoin
-    const providerDisplayName = providerName === 'vultisig' ? 'Vultisig' : 'Phantom'
-    
+  const handleSignPsbt = async (): Promise<void> => {
     if (!provider) {
-      onError(providerName === 'vultisig' ? 'Provider not available' : 'Phantom extension not detected')
+      onError('Provider not available')
       return
     }
 
-    if (providerName === 'vultisig') {
-      const connected = await ensureConnection()
-      if (!connected) {
-        onError('Vultisig wallet not connected. Please connect your wallet to continue.')
-        return
-      }
+    const connected = await ensureConnection()
+    if (!connected) {
+      onError('Vultisig wallet not connected. Please connect your wallet to continue.')
+      return
     }
 
     if (!psbt.trim()) {
@@ -169,20 +160,19 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
       return
     }
 
-    const setLoadingState = providerName === 'vultisig' ? setLoading : setLoadingPhantom
-    setLoadingState(true)
+    setLoading(true)
     
     try {
       const providerObj = provider as unknown as Record<string, unknown>
 
       if (!providerObj.signPSBT || typeof providerObj.signPSBT !== 'function') {
-        throw new Error(`${providerDisplayName} Sign PSBT method not available`)
+        throw new Error('Sign PSBT method not available')
       }
 
       let currentPsbtInstance = psbtInstance
       if (!currentPsbtInstance) {
         const psbtBuffer = Buffer.from(psbt, 'base64')
-        currentPsbtInstance = bitcoin.Psbt.fromBuffer(psbtBuffer)
+        currentPsbtInstance = core.Psbt.fromBuffer(psbtBuffer)
       }
 
       const psbtBuffer = currentPsbtInstance.toBuffer()
@@ -200,7 +190,7 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
         return {
           address: fromAddress,
           signingIndexes: [signingIndex],
-          sigHash: bitcoin.Transaction.SIGHASH_ALL
+          sigHash: core.Transaction.SIGHASH_BITCOINCASHBIP143
         }
       })
 
@@ -212,7 +202,7 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
       
       const signedPsbtBase64 = signedPsbtBuffer.toString('base64')
     
-      const signedPsbtInstance = bitcoin.Psbt.fromBuffer(signedPsbtBuffer, { network: bitcoin.networks.bitcoin })
+      const signedPsbtInstance = core.Psbt.fromBuffer(signedPsbtBuffer, { network: core.networks.bitcoin })
       
       for (let i = 0; i < signedPsbtInstance.inputCount; i++) {
         const input = signedPsbtInstance.data.inputs[i]
@@ -224,55 +214,12 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
       setPsbt(signedPsbtBase64)
       setPsbtInstance(signedPsbtInstance)
       
-      setBroadcasting(true)
-      try {
-        const finalizedPsbt = bitcoin.Psbt.fromBuffer(signedPsbtInstance.toBuffer(), { network: bitcoin.networks.bitcoin })
-        
-        try {
-          finalizedPsbt.finalizeAllInputs()
-        } catch (finalizeError) {
-          for (let i = 0; i < finalizedPsbt.inputCount; i++) {
-            try {
-              finalizedPsbt.finalizeInput(i)
-            } catch (inputError) {
-              throw new Error(`Cannot finalize input #${i}: ${(inputError as Error).message}. Make sure the PSBT is fully signed.`)
-            }
-          }
-        }
-
-        const tx = finalizedPsbt.extractTransaction()
-        const txHex = tx.toHex()
-
-        await UtxoContext.broadcastTransaction(txHex)
-
-        const txid = tx.getId()
-        setTxid(txid)
-        
-        const resultKey = providerName === 'vultisig' ? 'signedPsbt' : 'signedPsbtPhantom'
-        const result = providerName === 'vultisig' 
-          ? { [resultKey]: signedPsbtBase64, broadcasted: true, txid }
-          : { [resultKey]: signedPsbtBase64, provider: 'phantom', broadcasted: true, txid }
-        onResult(result)
-      } catch (broadcastErr) {
-        const resultKey = providerName === 'vultisig' ? 'signedPsbt' : 'signedPsbtPhantom'
-        const result = providerName === 'vultisig'
-          ? { [resultKey]: signedPsbtBase64 }
-          : { [resultKey]: signedPsbtBase64, provider: 'phantom' }
-        onResult(result)
-        onError(`${providerDisplayName} broadcast failed: ${(broadcastErr as Error).message || 'Unknown error'}`)
-      } finally {
-        setBroadcasting(false)
-        setLoadingState(false)
-      }
+      onResult({ signedPsbt: signedPsbtBase64 })
+      setLoading(false)
     } catch (err) {
-      onError(`${providerDisplayName}: ${(err as Error).message || 'Unknown error'}`)
-      setLoadingState(false)
-      setBroadcasting(false)
+      onError((err as Error).message || 'Unknown error')
+      setLoading(false)
     }
-  }
-
-  const handleSignPsbtWithPhantom = async (): Promise<void> => {
-    return handleSignPsbt('phantom')
   }
 
   const totalSelectedValue = Array.from(selectedUtxos).reduce((sum, key) => {
@@ -340,12 +287,10 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
         <SignPsbtTab
           psbt={psbt}
           loading={loading}
-          loadingPhantom={loadingPhantom}
-          broadcasting={broadcasting}
-          txid={txid}
+          broadcasting={false}
+          txid=""
           onPsbtChange={handlePsbtChange}
-          onSignPsbt={() => handleSignPsbt('vultisig')}
-          onSignPsbtWithPhantom={handleSignPsbtWithPhantom}
+          onSignPsbt={handleSignPsbt}
         />
       )}
     </div>

@@ -77,7 +77,6 @@ export function useWalletConnection(chain: 'bitcoin' | string = 'bitcoin'): UseW
         return false
       }
 
-      // Primero verificar si ya está conectado
       const accounts = await (providerObj.request as (params: { method: string }) => Promise<string[]>)({
         method: 'get_accounts'
       })
@@ -88,7 +87,6 @@ export function useWalletConnection(chain: 'bitcoin' | string = 'bitcoin'): UseW
         return true
       }
 
-      // Si no está conectado, solicitar conexión
       const requestedAccounts = await (providerObj.request as (params: { method: string }) => Promise<string[]>)({
         method: 'request_accounts'
       })

@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import { SignPsbtMethod } from './SignPsbtMethod'
 
 interface MethodComponentProps {
   provider: unknown
@@ -9,7 +10,9 @@ interface MethodComponentProps {
 
 type MethodComponent = (props: MethodComponentProps) => ReactElement
 
-export const bchMethodMapping: Record<string, MethodComponent> = {}
+export const bchMethodMapping: Record<string, MethodComponent> = {
+  signPSBT: SignPsbtMethod,
+}
 
 export function getMethodComponent(methodName: string): MethodComponent | null {
   return bchMethodMapping[methodName] || null
