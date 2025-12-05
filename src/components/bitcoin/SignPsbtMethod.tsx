@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Buffer } from 'buffer'
 import * as bitcoin from '@shapeshiftoss/bitcoinjs-lib'
-import { UtxoContext, Utxo } from '../../lib/tx/btc/UtxoContext'
+import { UtxoContext } from '../../lib/tx/btc/UtxoContext'
+import { UtxoQueryClient, Utxo, UtxoWithHex } from '../../lib/tx/btc/UtxoQueryClient'
 import { PsbtBuilder } from '../../lib/tx/btc/psbtBuilder'
 import { GeneratePsbtTab } from './signPsbtMethod/GeneratePsbtTab'
 import { SignPsbtTab } from './signPsbtMethod/SignPsbtTab'
@@ -29,7 +30,7 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   const [amount, setAmount] = useState<string>('')
   const [opReturnData, setOpReturnData] = useState<string>('')
   
-  const [utxos, setUtxos] = useState<Utxo[]>([])
+  const [utxos, setUtxos] = useState<UtxoWithHex[]>([])
   const [selectedUtxos, setSelectedUtxos] = useState<Set<string>>(new Set())
   const [loadingUtxos, setLoadingUtxos] = useState<boolean>(false)
   
@@ -62,8 +63,8 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
 
     setLoadingUtxos(true)
     try {
-      const utxoContext = new UtxoContext(fromAddress)
-      const fetchedUtxos = await utxoContext.fetchUtxos()
+      const utxoClient = new UtxoQueryClient('BTC', fromAddress)
+      const fetchedUtxos = await utxoClient.fetch()
       setUtxos(fetchedUtxos)
       setSelectedUtxos(new Set())
     } catch (err) {
@@ -104,7 +105,7 @@ export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
     try {
       const builder = new PsbtBuilder()
       
-      let utxosToUse: Utxo[]
+      let utxosToUse: UtxoWithHex[]
       if (selectedUtxos.size > 0) {
         utxosToUse = utxos.filter((utxo) => selectedUtxos.has(`${utxo.hash}:${utxo.index}`))
       } else {

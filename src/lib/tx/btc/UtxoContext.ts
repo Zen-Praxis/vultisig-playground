@@ -1,68 +1,8 @@
-export interface Utxo {
-  index: number
-  hash: string
-  value: bigint
-}
-
-export interface UtxoStatus {
-  confirmed: boolean
-  block_height: number
-  block_hash: string
-  block_time: number
-}
-
-export interface UtxoResponse {
-  txid: string
-  vout: number
-  status: UtxoStatus
-  value: number
-}
-
 export class UtxoContext {
   private static readonly BASE_ENDPOINTS = [
     'https://mempool.space/api',
     'https://blockstream.info/api',
   ]
-
-  private get addressEndpoints(): string[] {
-    return UtxoContext.BASE_ENDPOINTS.map(base => `${base}/address`)
-  }
-
-  constructor(private address: string) {}
-
-  public async fetchUtxos(): Promise<Utxo[]> {
-    return Promise.race(this.addressEndpoints.map((x) => this.fetch(x)))
-  }
-
-  public async fetch(endpoint: string): Promise<Utxo[]> {
-    const res = await fetch(`${endpoint}/${this.address}/utxo`)
-    const json: UtxoResponse[] = await res.json()
-
-    return json.map((x) => ({
-      index: x.vout,
-      hash: x.txid,
-      value: BigInt(x.value),
-    }))
-  }
-
-  public async fetchTransaction(txid: string): Promise<string> {
-    const endpoints = UtxoContext.BASE_ENDPOINTS.map(base => `${base}/tx`)
-
-    const responses = await Promise.allSettled(
-      endpoints.map(async (baseUrl) => {
-        const res = await fetch(`${baseUrl}/${txid}/hex`)
-        if (!res.ok) throw new Error(`Failed to fetch tx from ${baseUrl}`)
-        return await res.text()
-      })
-    )
-
-    const successful = responses.find((r) => r.status === 'fulfilled')
-    if (!successful || successful.status !== 'fulfilled') {
-      throw new Error('Failed to fetch transaction hex from all endpoints')
-    }
-
-    return successful.value
-  }
 
   public static async fetchRecommendedFeeRate(): Promise<bigint> {
     const endpoints = [

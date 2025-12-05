@@ -6,6 +6,8 @@ export interface Utxo {
   value: bigint
 }
 
+export type UtxoWithHex = Utxo & { hex?: string }
+
 type UtxoChainName = 'bitcoin' | 'bitcoincash' | 'dogecoin' | 'litecoin'
 
 export function utxoNetworkTochain(network: UtxoNetwork): UtxoChainName {
@@ -41,7 +43,7 @@ export class UtxoQueryClient {
     private address: string
   ) {}
 
-  async fetch(): Promise<Array<Utxo & { hex?: string }>> {
+  async fetch(): Promise<UtxoWithHex[]> {
     const query = `query GetUnspentTxOutputsV5($address: String!, $page: Int!) {
       ${utxoNetworkTochain(this.network)} {
         unspentTxOutputsV5(address: $address, page: $page) {
@@ -84,7 +86,7 @@ export class UtxoQueryClient {
         }
 
         return utxos.map(
-          (x: GraphQLUtxoResponse): Utxo & { hex?: string } => ({
+          (x: GraphQLUtxoResponse): UtxoWithHex => ({
             value: BigInt(x.value.value),
             index: x.oIndex,
             hash: x.oTxHash,

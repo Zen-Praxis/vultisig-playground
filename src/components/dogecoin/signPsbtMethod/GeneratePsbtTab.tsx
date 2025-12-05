@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { UtxoContext } from '../../../lib/tx/btc/UtxoContext'
 import { Utxo } from '../../../lib/tx/btc/UtxoQueryClient'
 
 interface GeneratePsbtTabProps {
@@ -44,21 +43,12 @@ export function GeneratePsbtTab({
   onGeneratePsbt,
 }: GeneratePsbtTabProps) {
   const [feeRate, setFeeRate] = useState<string>('')
-  const [loadingFeeRate, setLoadingFeeRate] = useState<boolean>(false)
-
-  const handleFetchFeeRate = async (): Promise<void> => {
-    setLoadingFeeRate(true)
-    try {
-      const recommendedFee = await UtxoContext.fetchRecommendedFeeRate()
-      setFeeRate(recommendedFee.toString())
-    } catch (err) {
-      onError((err as Error).message || 'Failed to fetch recommended fee rate')
-    } finally {
-      setLoadingFeeRate(false)
-    }
-  }
 
   const handleGeneratePsbt = (): void => {
+    if (!feeRate.trim()) {
+      onError('Fee rate is required for Dogecoin')
+      return
+    }
     onGeneratePsbt(feeRate)
   }
   return (
@@ -71,7 +61,7 @@ export function GeneratePsbtTab({
           type="text"
           value={fromAddress}
           onChange={(e) => onFromAddressChange(e.target.value)}
-          placeholder="Bitcoin address"
+          placeholder="Dogecoin address"
           className="w-full px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
@@ -84,7 +74,7 @@ export function GeneratePsbtTab({
           type="text"
           value={toAddress}
           onChange={(e) => onToAddressChange(e.target.value)}
-          placeholder="Bitcoin address"
+          placeholder="Dogecoin address"
           className="w-full px-2 py-1 text-xs font-mono border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
@@ -92,7 +82,7 @@ export function GeneratePsbtTab({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Amount (BTC)
+            Amount (DOGE)
           </label>
           <input
             type="text"
@@ -106,23 +96,13 @@ export function GeneratePsbtTab({
           <label className="block text-xs font-medium text-gray-700 mb-1">
             Fee Rate (sats/vbyte)
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={feeRate}
-              onChange={(e) => setFeeRate(e.target.value)}
-              placeholder="Auto"
-              className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleFetchFeeRate}
-              disabled={loadingFeeRate}
-              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
-              title="Fetch recommended fee rate"
-            >
-              {loadingFeeRate ? '...' : 'Auto'}
-            </button>
-          </div>
+          <input
+            type="text"
+            value={feeRate}
+            onChange={(e) => setFeeRate(e.target.value)}
+            placeholder="Required"
+            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
         </div>
       </div>
 
@@ -211,7 +191,7 @@ export function GeneratePsbtTab({
 
       <button
         onClick={handleGeneratePsbt}
-        disabled={loading || !fromAddress.trim() || !toAddress.trim() || !amount.trim() || utxos.length === 0}
+        disabled={loading || !fromAddress.trim() || !toAddress.trim() || !amount.trim() || !feeRate.trim() || utxos.length === 0}
         className="w-full px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Generating...' : 'Generate PSBT'}
@@ -219,4 +199,6 @@ export function GeneratePsbtTab({
     </div>
   )
 }
+
+
 

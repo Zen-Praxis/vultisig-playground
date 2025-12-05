@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Buffer } from 'buffer'
-import * as core from '@shapeshiftoss/bitcoinjs-lib'
+import * as bitcoin from '@shapeshiftoss/bitcoinjs-lib'
 import { UtxoQueryClient, Utxo, UtxoWithHex } from '../../lib/tx/btc/UtxoQueryClient'
-import { BchPsbtBuilder } from '../../lib/tx/bch/psbtBuilder'
+import { PsbtBuilder } from '../../lib/tx/btc/psbtBuilder'
+
+const dogeNetwork = {
+  messagePrefix: "Dogecoin Signed Message Much Wow:",
+  bip32: {
+    public: {
+      p2pkh: 49990397,
+    },
+    private: 87393172,
+  },
+  pubKeyHash: 30,
+  scriptHash: 22,
+  wif: 128,
+  bech32: "",
+} as unknown as bitcoin.networks.Network
 import { GeneratePsbtTab } from './signPsbtMethod/GeneratePsbtTab'
 import { SignPsbtTab } from './signPsbtMethod/SignPsbtTab'
 import { useWalletConnection } from '../../hooks/useWalletConnection'
@@ -14,23 +28,23 @@ interface SignPsbtMethodProps {
   onAccountUpdate?: (accounts: string[]) => void
 }
 
-export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodProps) {
+export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   const [mode, setMode] = useState<'generate' | 'sign'>('generate')
   const [psbt, setPsbt] = useState<string>('')
-  const [psbtInstance, setPsbtInstance] = useState<core.Psbt | null>(null)
+  const [psbtInstance, setPsbtInstance] = useState<bitcoin.Psbt | null>(null)
   const [selectedUtxosForPsbt, setSelectedUtxosForPsbt] = useState<Utxo[]>([])
   const [loading, setLoading] = useState<boolean>(false)
 
-  const [fromAddress, setFromAddress] = useState<string>('qqgfs38865u3dvvx9a6vw8ssdpmly3hhc59cjurfrp')
-  const [toAddress, setToAddress] = useState<string>('qqgfs38865u3dvvx9a6vw8ssdpmly3hhc59cjurfrp')
+  const [fromAddress, setFromAddress] = useState<string>('')
+  const [toAddress, setToAddress] = useState<string>('')
   const [amount, setAmount] = useState<string>('')
   const [opReturnData, setOpReturnData] = useState<string>('')
   
-  const [utxos, setUtxos] = useState<Array<UtxoWithHex & { hex: string }>>([])
+  const [utxos, setUtxos] = useState<UtxoWithHex[]>([])
   const [selectedUtxos, setSelectedUtxos] = useState<Set<string>>(new Set())
   const [loadingUtxos, setLoadingUtxos] = useState<boolean>(false)
   
-  const { connectedAddress, ensureConnection } = useWalletConnection('bitcoincash')
+  const { connectedAddress, ensureConnection } = useWalletConnection('dogecoin')
 
   useEffect(() => {
     if (connectedAddress) {
@@ -41,7 +55,6 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
   useEffect(() => {
     setLoading(false)
     onResult(undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
   useEffect(() => {
@@ -57,10 +70,9 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
 
     setLoadingUtxos(true)
     try {
-      const utxoClient = new UtxoQueryClient('BCH', fromAddress)
+      const utxoClient = new UtxoQueryClient('DOGE', fromAddress)
       const fetchedUtxos = await utxoClient.fetch()
-      const utxosWithHex = fetchedUtxos.filter((u): u is UtxoWithHex & { hex: string } => !!u.hex)
-      setUtxos(utxosWithHex)
+      setUtxos(fetchedUtxos)
       setSelectedUtxos(new Set())
     } catch (err) {
       onError((err as Error).message || 'Failed to fetch UTXOs')
@@ -98,9 +110,9 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
 
     setLoading(true)
     try {
-      const builder = new BchPsbtBuilder()
+      const builder = new PsbtBuilder(dogeNetwork)
       
-      let utxosToUse: Array<UtxoWithHex & { hex: string }>
+      let utxosToUse: UtxoWithHex[]
       if (selectedUtxos.size > 0) {
         utxosToUse = utxos.filter((utxo) => selectedUtxos.has(`${utxo.hash}:${utxo.index}`))
       } else {
@@ -113,7 +125,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
       }
 
       if (!feeRate.trim()) {
-        onError('Fee rate is required for BCH')
+        onError('Fee rate is required for Dogecoin')
         return
       }
       
@@ -142,7 +154,8 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
   }
 
   const handleSignPsbt = async (): Promise<void> => {
-    if (!provider) {
+    const dogeProvider = window.vultisig?.dogecoin
+    if (!dogeProvider) {
       onError('Provider not available')
       return
     }
@@ -161,7 +174,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
     setLoading(true)
     
     try {
-      const providerObj = provider as unknown as Record<string, unknown>
+      const providerObj = dogeProvider as unknown as Record<string, unknown>
 
       if (!providerObj.signPSBT || typeof providerObj.signPSBT !== 'function') {
         throw new Error('Sign PSBT method not available')
@@ -170,7 +183,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
       let currentPsbtInstance = psbtInstance
       if (!currentPsbtInstance) {
         const psbtBuffer = Buffer.from(psbt, 'base64')
-        currentPsbtInstance = core.Psbt.fromBuffer(psbtBuffer)
+        currentPsbtInstance = bitcoin.Psbt.fromBuffer(psbtBuffer, { network: dogeNetwork })
       }
 
       const psbtBuffer = currentPsbtInstance.toBuffer()
@@ -188,7 +201,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
         return {
           address: fromAddress,
           signingIndexes: [signingIndex],
-          sigHash: core.Transaction.SIGHASH_BITCOINCASHBIP143
+          sigHash: bitcoin.Transaction.SIGHASH_ALL
         }
       })
 
@@ -200,7 +213,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
       
       const signedPsbtBase64 = signedPsbtBuffer.toString('base64')
     
-      const signedPsbtInstance = core.Psbt.fromBuffer(signedPsbtBuffer, { network: core.networks.bitcoin })
+      const signedPsbtInstance = bitcoin.Psbt.fromBuffer(signedPsbtBuffer, { network: dogeNetwork })
       
       for (let i = 0; i < signedPsbtInstance.inputCount; i++) {
         const input = signedPsbtInstance.data.inputs[i]
@@ -285,8 +298,6 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
         <SignPsbtTab
           psbt={psbt}
           loading={loading}
-          broadcasting={false}
-          txid=""
           onPsbtChange={handlePsbtChange}
           onSignPsbt={handleSignPsbt}
         />
@@ -294,3 +305,4 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
     </div>
   )
 }
+

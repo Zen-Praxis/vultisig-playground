@@ -1,6 +1,6 @@
 import * as bitcoin from '@shapeshiftoss/bitcoinjs-lib'
 import { Buffer } from 'buffer'
-import { UtxoContext, Utxo } from './UtxoContext'
+import { Utxo, UtxoWithHex } from './UtxoQueryClient'
 
 export interface PsbtInputConfig {
   txid: string
@@ -25,7 +25,6 @@ export class PsbtBuilder {
   private network: bitcoin.networks.Network
 
   constructor(network: bitcoin.networks.Network = bitcoin.networks.bitcoin) {
-    console.log('PsbtBuilder constructor', network)
     this.network = network
   }
 
@@ -74,15 +73,13 @@ export class PsbtBuilder {
   }
 
   public async buildPsbtFromUtxos(
-    utxos: Utxo[],
+    utxos: UtxoWithHex[],
     fromAddress: string,
     toAddress: string,
     amount: bigint,
     feeRate: bigint = BigInt(10),
     opReturnData?: string
   ): Promise<{ psbt: bitcoin.Psbt; selectedUtxos: Utxo[] }> {
-    const utxoContext = new UtxoContext(fromAddress)
-
     const selectedUtxos = this.selectUtxos(utxos, amount, feeRate)
     const totalInput = selectedUtxos.reduce((sum, utxo) => sum + utxo.value, BigInt(0))
 
@@ -97,16 +94,16 @@ export class PsbtBuilder {
       outputs.push({ address: fromAddress, amount: change })
     }
 
-    const inputs: PsbtInputConfig[] = await Promise.all(
-      selectedUtxos.map(async (utxo) => {
-        const hex = await utxoContext.fetchTransaction(utxo.hash)
-        return {
-          txid: utxo.hash,
-          vout: utxo.index,
-          hex,
-        }
-      })
-    )
+    const inputs: PsbtInputConfig[] = selectedUtxos.map((utxo) => {
+      if (!utxo.hex) {
+        throw new Error(`Transaction hex not available for UTXO ${utxo.hash}:${utxo.index}`)
+      }
+      return {
+        txid: utxo.hash,
+        vout: utxo.index,
+        hex: utxo.hex,
+      }
+    })
 
     const psbt = await this.buildPsbt({
       inputs,
@@ -117,7 +114,7 @@ export class PsbtBuilder {
     return { psbt, selectedUtxos }
   }
 
-  private selectUtxos(utxos: Utxo[], amount: bigint, feeRate: bigint): Utxo[] {
+  private selectUtxos(utxos: UtxoWithHex[], amount: bigint, feeRate: bigint): UtxoWithHex[] {
     const sortedUtxos = [...utxos].sort((a, b) => {
       if (a.value < b.value) return -1
       if (a.value > b.value) return 1
@@ -125,7 +122,7 @@ export class PsbtBuilder {
     })
 
     let total = BigInt(0)
-    const selected: Utxo[] = []
+    const selected: UtxoWithHex[] = []
 
     for (const utxo of sortedUtxos) {
       selected.push(utxo)

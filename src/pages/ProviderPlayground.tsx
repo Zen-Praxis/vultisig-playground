@@ -19,7 +19,7 @@ function ProviderPlayground() {
   const [methodResults, setMethodResults] = useState<MethodResult>({})
   const [selectedMethod, setSelectedMethod] = useState<string>('')
   const providerMethods = useProviderMethods(provider || '')
-
+  
   const getProviderInstance = (): unknown | null => {
     if (!provider || !window.vultisig) return null
     return (window.vultisig as Record<string, unknown>)[provider] || null
