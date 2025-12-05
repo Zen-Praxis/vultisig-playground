@@ -1,5 +1,3 @@
-import { RequestMethod } from './RequestMethod'
-import { RequestAccountsMethod } from './RequestAccountsMethod'
 import type { ReactElement } from 'react'
 
 interface MethodComponentProps {
@@ -12,8 +10,6 @@ interface MethodComponentProps {
 type MethodComponent = (props: MethodComponentProps) => ReactElement
 
 export const cosmosMethodMapping: Record<string, MethodComponent> = {
-  request: RequestMethod,
-  requestAccounts: RequestAccountsMethod,
 }
 
 export function getMethodComponent(methodName: string): MethodComponent | null {

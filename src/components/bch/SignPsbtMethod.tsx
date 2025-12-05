@@ -14,7 +14,7 @@ interface SignPsbtMethodProps {
   onAccountUpdate?: (accounts: string[]) => void
 }
 
-export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodProps) {
+export function SignPsbtMethod({ onResult, onError }: SignPsbtMethodProps) {
   const [mode, setMode] = useState<'generate' | 'sign'>('generate')
   const [psbt, setPsbt] = useState<string>('')
   const [psbtInstance, setPsbtInstance] = useState<core.Psbt | null>(null)
@@ -142,7 +142,8 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
   }
 
   const handleSignPsbt = async (): Promise<void> => {
-    if (!provider) {
+    const bchProvider = window.vultisig?.bitcoincash
+    if (!bchProvider) {
       onError('Provider not available')
       return
     }
@@ -161,7 +162,7 @@ export function SignPsbtMethod({ provider, onResult, onError }: SignPsbtMethodPr
     setLoading(true)
     
     try {
-      const providerObj = provider as unknown as Record<string, unknown>
+      const providerObj = bchProvider as unknown as Record<string, unknown>
 
       if (!providerObj.signPSBT || typeof providerObj.signPSBT !== 'function') {
         throw new Error('Sign PSBT method not available')
