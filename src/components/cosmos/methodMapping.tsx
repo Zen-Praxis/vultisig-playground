@@ -1,4 +1,6 @@
 import type { ReactElement } from 'react'
+import { SignAminoMethod } from './SignAminoMethod'
+import { EnableMethod } from './EnableMethod'
 
 interface MethodComponentProps {
   provider: unknown
@@ -10,6 +12,8 @@ interface MethodComponentProps {
 type MethodComponent = (props: MethodComponentProps) => ReactElement
 
 export const cosmosMethodMapping: Record<string, MethodComponent> = {
+  enable: EnableMethod,
+  signAmino: SignAminoMethod,
 }
 
 export function getMethodComponent(methodName: string): MethodComponent | null {
