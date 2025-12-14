@@ -9,6 +9,7 @@ export interface CosmosAccountInfo {
 export const getRpcUrl = (chainId: string): string => {
   const rpcMap: Record<string, string> = {
     'cosmoshub-4': 'https://cosmos-rpc.polkachu.com',
+    'thorchain-1': 'https://rpc.ninerealms.com',
   }
   return rpcMap[chainId] || `https://rpc.cosmos.directory/${chainId}`
 }

@@ -10,6 +10,7 @@ interface EnableMethodProps {
 
 const COSMOS_CHAIN_IDS = [
   { value: 'cosmoshub-4', label: 'Cosmos Hub (cosmoshub-4)' },
+  { value: 'thorchain-1', label: 'THORChain (thorchain-1)' },
 ]
 
 export function EnableMethod({ onResult, onError, onAccountUpdate }: EnableMethodProps) {
@@ -58,7 +59,6 @@ export function EnableMethod({ onResult, onError, onAccountUpdate }: EnableMetho
           value={chainId}
           onChange={(e) => {
             setChainId(e.target.value)
-            setAccountInfo(null)
             onResult(undefined)
           }}
           className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
